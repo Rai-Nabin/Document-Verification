@@ -41,9 +41,7 @@ class User(Base):
         nullable=False,
         comment="Hashed password (never store plain text passwords)",
     )
-    is_active = Column(
-        Boolean, default=True, comment="Indicates if the user is active"
-    )  # noqa
+    is_active = Column(Boolean, default=True, comment="Indicates if the user is active")
     is_superuser = Column(
         Boolean, default=False, comment="Indicates if the user is an admin"
     )
