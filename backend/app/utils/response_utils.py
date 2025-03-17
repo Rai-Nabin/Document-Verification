@@ -17,7 +17,7 @@ Usage:
 
 from typing import Any, Optional
 
-from app.utils import AppLogger
+from app.utils.logging import AppLogger
 from fastapi import status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
