@@ -1,0 +1,15 @@
+# requirements.txt
+
+fastapi[standard]==0.115.10
+
+# Security
+pyjwt==2.10.1
+passlib==1.7.4
+bcrypt==4.2.1
+
+# Database
+pydantic-settings==2.8.1
+sqlmodel==0.0.24
+alembic==1.15.1
+psycopg2-binary==2.9.10
+
