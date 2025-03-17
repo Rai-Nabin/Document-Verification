@@ -45,7 +45,7 @@ class Verification(Base):
         comment="Timestamp when the document was verified",
     )
     is_valid = Column(
-        Boolean, default=False, comment="Indicates if the verification is valid"  # noqa
+        Boolean, default=False, comment="Indicates if the verification is valid"
     )
     created_at = Column(
         TIMESTAMP(timezone=True),
