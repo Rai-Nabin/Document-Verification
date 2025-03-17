@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 from app.core import settings
-from app.utils import AppLogger
+from app.utils.logging import AppLogger
 from fastapi import UploadFile
 
 # Module-specific logger
