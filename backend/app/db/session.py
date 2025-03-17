@@ -1,7 +1,7 @@
 """
 File Path: app/db/session.py
 
-Database session management for the Document Verification System
+Database session management for the Document Verification System.
 
 This module defines a DatabaseSessionManager class to handle SQLAlchemy engine creation,
 session factory setup, and database session provisioning for FastAPI routes. It supports
