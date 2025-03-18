@@ -1,7 +1,7 @@
 """
 File Path: app/core/security.py
 
-Security Utilities for Document Verification System.
+Security Utilities for Document Vision System.
 
 This module provides cryptographic utilities for password hashing and JWT operations.
 
@@ -15,7 +15,8 @@ Usage:
 from datetime import timedelta
 from typing import Callable, Optional, Union
 
-from app.services.auth import JWTHandler
+import jwt
+from app.services.auth.jwt_handlers import JWTHandler
 from app.utils import AppLogger
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
@@ -39,15 +40,17 @@ class Security:
 
     def __init__(
         self,
-        get_password_hash: Callable[[str], str],
-        verify_password: Callable[[str, str], bool],
+        get_password_hash: Callable[[str], str] = pwd_context.hash,
+        verify_password: Callable[[str, str], bool] = pwd_context.verify,
     ) -> None:
         """
-        Initialize Security with password hashing and verification functions.
+        Initialize Security with optional password hashing and verification functions.
 
         Args:
-            get_password_hash (Callable[[str], str]): Function to hash a password.
-            verify_password (Callable[[str, str], bool]): Function to verify a password against a hash. # noqa
+            get_password_hash (Callable[[str], str]): Function to hash a password
+              (default: pwd_context.hash).
+            verify_password (Callable[[str, str], bool]): Function to verify a password
+              (default: pwd_context.verify).
         """
         self._get_password_hash = get_password_hash
         self._verify_password = verify_password
@@ -73,6 +76,9 @@ class Security:
             raise ValueError("Password must be a non-empty string")
         try:
             return self._get_password_hash(password)
+        except ValueError as ve:
+            logger.error(f"Password hashing failed due to value error: {str(ve)}")
+            raise
         except Exception as e:
             logger.error(f"Failed to hash password: {str(e)}")
             raise
@@ -93,6 +99,9 @@ class Security:
             return False
         try:
             return self._verify_password(plain_password, hashed_password)
+        except ValueError as ve:
+            logger.error(f"Password verification failed due to value error: {str(ve)}")
+            return False
         except Exception as e:
             logger.error(f"Password verification failed: {str(e)}")
             return False
@@ -113,8 +122,11 @@ class Security:
             str: The encoded JWT token.
 
         Raises:
-            HTTPException: If token creation fails (status 500).
+            HTTPException: If token creation fails (status 400 or 500).
         """
+        if "sub" not in data:
+            logger.error("Payload missing 'sub' claim")
+            raise HTTPException(status_code=400, detail="Payload must include 'sub'")
         try:
             token = self.jwt_handler.create_access_token(data, expires_delta)
             logger.debug("Access token created successfully.")
@@ -143,10 +155,16 @@ class Security:
             else:
                 logger.warning("Token decoded but no valid username found.")
             return username
+        except jwt.ExpiredSignatureError:
+            logger.warning("Token has expired")
+            return None
+        except jwt.InvalidTokenError as ite:
+            logger.error(f"Invalid token: {str(ite)}")
+            return None
         except Exception as e:
             logger.error(f"Failed to decode token: {str(e)}")
             return None
 
 
 # Singleton instance for application-wide use
-security = Security(pwd_context.hash, pwd_context.verify)
+security = Security()
