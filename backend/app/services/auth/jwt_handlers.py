@@ -1,7 +1,7 @@
 """
-File Path: app/services/auth/jwt_handler.py
+File Path: app/services/auth/jwt_handlers.py
 
-JWT Token Handling for Document Verification System.
+JWT Token Handling for Document Vision System.
 
 This module provides a utility class for creating and decoding JSON Web Tokens (JWT)
 used in authentication workflows. It integrates with application settings for
@@ -39,7 +39,7 @@ class JWTHandler:
         Initialize JWTHandler with configuration from settings.
 
         Raises:
-            ValueError: If SECRET_KEY, ALGORITHM, or ACCESS_TOKEN_EXP_MIN is missing.
+            ValueError: If SECRET_KEY, ALGORITHM, or ACCESS_TOKEN_EXPIRE_MINUTES is missing.
         """
         self.SECRET_KEY = settings.SECRET_KEY
         self.ALGORITHM = settings.ALGORITHM
@@ -47,7 +47,7 @@ class JWTHandler:
         if not all([self.SECRET_KEY, self.ALGORITHM, self.ACCESS_TOKEN_EXPIRE_MINUTES]):
             logger.error("JWT configuration settings are incomplete.")
             raise ValueError(
-                "SECRET_KEY, ALGORITHM, and ACCESS_TOKEN_EXP_MIN must be set in settings"
+                "SECRET_KEY, ALGORITHM, and ACCESS_TOKEN_EXPIRE_MINUTES must be set in settings"
             )
         logger.info("JWTHandler initialized.")
 
@@ -67,10 +67,10 @@ class JWTHandler:
             str: The encoded JWT token.
 
         Raises:
-            Exception: If token encoding fails (e.g., invalid key or algorithm).
+            ValueError: If payload encoding fails.
         """
         to_encode = data.copy()
-        expire = datetime.now() + (
+        expire = datetime.utcnow() + (
             expires_delta or timedelta(minutes=self.ACCESS_TOKEN_EXPIRE_MINUTES)
         )
         to_encode.update({"exp": expire})
@@ -78,7 +78,11 @@ class JWTHandler:
             encoded_jwt = jwt.encode(
                 to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM
             )
+            logger.debug("JWT token created successfully")
             return encoded_jwt
+        except ValueError as ve:
+            logger.error(f"JWT encoding failed due to value error: {str(ve)}")
+            raise
         except Exception as e:
             logger.error(f"JWT encoding failed: {str(e)}")
             raise
@@ -93,12 +97,18 @@ class JWTHandler:
         Returns:
             Union[str, None]: Username from "sub" claim if valid, None if invalid or missing.
         """
+        if not token or not isinstance(token, str):
+            logger.warning("Invalid or empty token provided")
+            return None
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
             username: str = payload.get("sub")
             if not username:
-                logger.warning("JWT token has no 'sub' claim.")
+                logger.warning("JWT token has no 'sub' claim")
             return username
+        except jwt.ExpiredSignatureError:
+            logger.warning("JWT token has expired")
+            return None
         except InvalidTokenError as e:
             logger.warning(f"JWT decoding failed: {str(e)}")
             return None
